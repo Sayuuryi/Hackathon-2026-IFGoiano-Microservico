@@ -1,0 +1,7 @@
+CREATE TABLE app_user(id UUID PRIMARY KEY,name VARCHAR(30) NOT NULL,email VARCHAR(200) NOT NULL UNIQUE,password_hash VARCHAR(100) NOT NULL,age INTEGER NOT NULL CHECK(age>=18 AND age<=120),created_at BIGINT NOT NULL);
+CREATE TABLE pet_profile(user_id UUID PRIMARY KEY REFERENCES app_user(id) ON DELETE CASCADE,pet_name VARCHAR(20) NOT NULL,pet_color INTEGER NOT NULL CHECK(pet_color BETWEEN 0 AND 2),accessory VARCHAR(15) NOT NULL,environment VARCHAR(15) NOT NULL,voice BOOLEAN NOT NULL,reduced_motion BOOLEAN NOT NULL);
+CREATE TABLE app_session(id UUID PRIMARY KEY,user_id UUID NOT NULL REFERENCES app_user(id) ON DELETE CASCADE,refresh_hash VARCHAR(64) NOT NULL UNIQUE,expires_at BIGINT NOT NULL,created_at BIGINT NOT NULL);
+CREATE INDEX app_session_user ON app_session(user_id);
+CREATE TABLE presence_event(user_id UUID PRIMARY KEY REFERENCES app_user(id) ON DELETE CASCADE,last_seen_at BIGINT NOT NULL,last_action VARCHAR(20) NOT NULL);
+CREATE TABLE memory(id UUID PRIMARY KEY,user_id UUID NOT NULL REFERENCES app_user(id) ON DELETE CASCADE,kind VARCHAR(40) NOT NULL,created_at BIGINT NOT NULL);
+CREATE INDEX memory_owner ON memory(user_id,created_at);

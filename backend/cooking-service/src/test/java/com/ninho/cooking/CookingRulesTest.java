@@ -1,0 +1,3 @@
+package com.ninho.cooking;
+import com.ninho.shared.*;import org.junit.jupiter.api.Test;import static org.junit.jupiter.api.Assertions.*;
+class CookingRulesTest{@Test void invalidActionsDoNotCompleteAnActivity(){var g=new GameState();g.definitionId="soup";var rules=new CookingRules();rules.start(g,0);assertThrows(DomainException.class,()->rules.act(g,"mix",null,1));assertThrows(DomainException.class,()->rules.act(g,"ingredient","banana",1));assertTrue(g.selected.isEmpty());for(var i:java.util.List.of("carrot","potato","pumpkin"))rules.act(g,"ingredient",i,1);for(int i=0;i<3;i++)rules.act(g,"mix",null,1000);assertThrows(DomainException.class,()->rules.act(g,"finish",null,2000));rules.act(g,"finish",null,14000);assertEquals("FINISHED",g.state);}}

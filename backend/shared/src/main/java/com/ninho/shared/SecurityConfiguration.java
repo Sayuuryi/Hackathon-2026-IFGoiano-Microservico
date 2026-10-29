@@ -1,0 +1,16 @@
+package com.ninho.shared;
+import java.nio.file.*;import java.security.*;import java.security.interfaces.*;import java.security.spec.*;import java.util.*;
+import jakarta.servlet.http.*;import org.springframework.beans.factory.annotation.Value;import org.springframework.context.annotation.*;
+import org.springframework.security.config.annotation.web.builders.HttpSecurity;import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.oauth2.jwt.*;import org.springframework.security.oauth2.core.*;import org.springframework.security.oauth2.server.resource.web.*;
+import org.springframework.security.web.SecurityFilterChain;
+@Configuration public class SecurityConfiguration {
+ public static RSAPublicKey publicKey(String filename)throws Exception{var content=Files.readString(Path.of(filename)).replaceAll("-----[^-]+-----","").replaceAll("\\s","");return(RSAPublicKey)KeyFactory.getInstance("RSA").generatePublic(new X509EncodedKeySpec(Base64.getDecoder().decode(content)));}
+ @Bean JwtDecoder jwtDecoder(@Value("${ninho.public-key}")String path)throws Exception{var decoder=NimbusJwtDecoder.withPublicKey(publicKey(path)).build();var audience=new JwtClaimValidator<List<String>>("aud",a->a!=null&&a.contains("ninho-services"));decoder.setJwtValidator(new DelegatingOAuth2TokenValidator<>(JwtValidators.createDefaultWithIssuer("ninho-local"),audience));return decoder;}
+ @Bean SecurityFilterChain security(HttpSecurity http,JwtDecoder decoder)throws Exception{
+  BearerTokenResolver resolver=request->{if(request.getDispatcherType()==jakarta.servlet.DispatcherType.ERROR||request.getRequestURI().startsWith("/api/auth/")||request.getRequestURI().matches("/api/games/[^/]+/(availability|catalog)"))return null;String header=request.getHeader("Authorization");if(header!=null&&header.startsWith("Bearer "))return header.substring(7);if(request.getCookies()!=null)for(Cookie cookie:request.getCookies())if(cookie.getName().equals("ninho_session"))return cookie.getValue();return null;};
+  http.csrf(csrf->csrf.disable()).sessionManagement(s->s.sessionCreationPolicy(SessionCreationPolicy.STATELESS)).authorizeHttpRequests(a->a.dispatcherTypeMatchers(jakarta.servlet.DispatcherType.ERROR).permitAll().requestMatchers("/actuator/health/**","/api/auth/**","/api/me","/api/games/*/catalog","/api/games/*/availability").permitAll().anyRequest().authenticated()).oauth2ResourceServer(o->o.bearerTokenResolver(resolver).jwt(j->j.decoder(decoder)).authenticationEntryPoint((q,r,e)->failure(q,r,401,"AUTH_REQUIRED","Entre na sua conta para continuar."))).exceptionHandling(e->e.accessDeniedHandler((q,r,x)->failure(q,r,403,"ACCESS_DENIED","Essa ação não está disponível para sua conta.")));
+  return http.build();
+ }
+ static void failure(HttpServletRequest request,HttpServletResponse response,int status,String code,String detail)throws java.io.IOException{response.setStatus(status);response.setContentType("application/problem+json;charset=UTF-8");response.getWriter().write("{\"status\":"+status+",\"code\":\""+code+"\",\"detail\":\""+detail+"\",\"requestId\":\""+Objects.toString(request.getAttribute("requestId"),"")+"\"}");}
+}

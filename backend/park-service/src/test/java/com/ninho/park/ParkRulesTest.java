@@ -1,0 +1,3 @@
+package com.ninho.park;
+import com.ninho.shared.*;import org.junit.jupiter.api.Test;import static org.junit.jupiter.api.Assertions.*;
+class ParkRulesTest{@Test void invalidActionsDoNotCompleteAnActivity(){var g=new GameState();g.definitionId="park-lake";var rules=new ParkRules();rules.start(g,0);rules.act(g,"observe","bird",1);assertThrows(DomainException.class,()->rules.act(g,"observe","bird",2));assertEquals(1,g.progress);rules.act(g,"observe","water",3);rules.act(g,"observe","bench",4);assertEquals("FINISHED",g.state);assertThrows(DomainException.class,()->rules.act(g,"observe","bench",5));}}
