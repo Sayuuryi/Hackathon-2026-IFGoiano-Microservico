@@ -1,0 +1,261 @@
+name: ninho
+services:
+  verify:
+    image: node:22-alpine
+    profiles: [audit]
+    networks: [edge]
+    working_dir: /tests
+    command: ["node", "wait-and-test.mjs"]
+    volumes:
+      - ./tests:/tests:ro
+    environment:
+      TEST_BASE_URL: http://frontend
+      TEST_ORIGIN: ${NINHO_ORIGIN:-auto}
+      TEST_DATABASE: PostgreSQL 17 no Docker
+    depends_on:
+      frontend:
+        condition: service_healthy
+  keys:
+    image: node:22-alpine
+    command: ["node", "/init-keys.mjs"]
+    volumes:
+      - ./infra/init-keys.mjs:/init-keys.mjs:ro
+      - identity-keys:/identity
+      - verification-keys:/verify
+    restart: "no"
+    network_mode: none
+  frontend:
+    networks: [edge]
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile
+    ports:
+      - "${NINHO_PORT:-8080}:80"
+    restart: unless-stopped
+    mem_limit: 128m
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1/health"]
+      interval: 15s
+      timeout: 3s
+      retries: 3
+  account-db:
+    networks: [account-private]
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: ninho_account
+      POSTGRES_USER: ninho
+      POSTGRES_PASSWORD: ${ACCOUNT_DB_PASSWORD:-ninho-account-development}
+    volumes:
+      - account-data:/var/lib/postgresql/data
+    restart: unless-stopped
+    mem_limit: 256m
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ninho -d ninho_account"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+  account-service:
+    networks: [edge, account-private]
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+      args:
+        SERVICE: account-service
+    environment:
+      JDBC_URL: jdbc:postgresql://account-db:5432/ninho_account?connectTimeout=2&socketTimeout=5
+      DB_USER: ninho
+      DB_PASSWORD: ${ACCOUNT_DB_PASSWORD:-ninho-account-development}
+      NINHO_PUBLIC_KEY: /keys/public.pem
+      NINHO_ALLOWED_ORIGIN: ${NINHO_ORIGIN:-auto}
+      NINHO_SECURE_COOKIE: ${NINHO_SECURE_COOKIE:-false}
+      NINHO_PRIVATE_KEY: /keys/private.pem
+    volumes:
+      - identity-keys:/keys:ro
+    depends_on:
+      keys:
+        condition: service_completed_successfully
+      account-db:
+        condition: service_healthy
+    restart: unless-stopped
+    mem_limit: 512m
+    stop_grace_period: 20s
+  social-db:
+    networks: [social-private]
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: ninho_social
+      POSTGRES_USER: ninho
+      POSTGRES_PASSWORD: ${SOCIAL_DB_PASSWORD:-ninho-social-development}
+    volumes:
+      - social-data:/var/lib/postgresql/data
+    restart: unless-stopped
+    mem_limit: 256m
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ninho -d ninho_social"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+  social-service:
+    networks: [edge, social-private]
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+      args:
+        SERVICE: social-service
+    environment:
+      JDBC_URL: jdbc:postgresql://social-db:5432/ninho_social?connectTimeout=2&socketTimeout=5
+      DB_USER: ninho
+      DB_PASSWORD: ${SOCIAL_DB_PASSWORD:-ninho-social-development}
+      NINHO_PUBLIC_KEY: /keys/public.pem
+      NINHO_ALLOWED_ORIGIN: ${NINHO_ORIGIN:-auto}
+      NINHO_SECURE_COOKIE: ${NINHO_SECURE_COOKIE:-false}
+    volumes:
+      - verification-keys:/keys:ro
+    depends_on:
+      keys:
+        condition: service_completed_successfully
+      social-db:
+        condition: service_healthy
+    restart: unless-stopped
+    mem_limit: 512m
+    stop_grace_period: 20s
+  fishing-db:
+    networks: [fishing-private]
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: ninho_fishing
+      POSTGRES_USER: ninho
+      POSTGRES_PASSWORD: ${FISHING_DB_PASSWORD:-ninho-fishing-development}
+    volumes:
+      - fishing-data:/var/lib/postgresql/data
+    restart: unless-stopped
+    mem_limit: 256m
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ninho -d ninho_fishing"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+  fishing-service:
+    networks: [edge, fishing-private]
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+      args:
+        SERVICE: fishing-service
+    environment:
+      JDBC_URL: jdbc:postgresql://fishing-db:5432/ninho_fishing?connectTimeout=2&socketTimeout=5
+      DB_USER: ninho
+      DB_PASSWORD: ${FISHING_DB_PASSWORD:-ninho-fishing-development}
+      NINHO_PUBLIC_KEY: /keys/public.pem
+      NINHO_ALLOWED_ORIGIN: ${NINHO_ORIGIN:-auto}
+      NINHO_SECURE_COOKIE: ${NINHO_SECURE_COOKIE:-false}
+    volumes:
+      - verification-keys:/keys:ro
+    depends_on:
+      keys:
+        condition: service_completed_successfully
+      fishing-db:
+        condition: service_healthy
+    restart: unless-stopped
+    mem_limit: 512m
+    stop_grace_period: 20s
+  cooking-db:
+    networks: [cooking-private]
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: ninho_cooking
+      POSTGRES_USER: ninho
+      POSTGRES_PASSWORD: ${COOKING_DB_PASSWORD:-ninho-cooking-development}
+    volumes:
+      - cooking-data:/var/lib/postgresql/data
+    restart: unless-stopped
+    mem_limit: 256m
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ninho -d ninho_cooking"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+  cooking-service:
+    networks: [edge, cooking-private]
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+      args:
+        SERVICE: cooking-service
+    environment:
+      JDBC_URL: jdbc:postgresql://cooking-db:5432/ninho_cooking?connectTimeout=2&socketTimeout=5
+      DB_USER: ninho
+      DB_PASSWORD: ${COOKING_DB_PASSWORD:-ninho-cooking-development}
+      NINHO_PUBLIC_KEY: /keys/public.pem
+      NINHO_ALLOWED_ORIGIN: ${NINHO_ORIGIN:-auto}
+      NINHO_SECURE_COOKIE: ${NINHO_SECURE_COOKIE:-false}
+    volumes:
+      - verification-keys:/keys:ro
+    depends_on:
+      keys:
+        condition: service_completed_successfully
+      cooking-db:
+        condition: service_healthy
+    restart: unless-stopped
+    mem_limit: 512m
+    stop_grace_period: 20s
+  park-db:
+    networks: [park-private]
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: ninho_park
+      POSTGRES_USER: ninho
+      POSTGRES_PASSWORD: ${PARK_DB_PASSWORD:-ninho-park-development}
+    volumes:
+      - park-data:/var/lib/postgresql/data
+    restart: unless-stopped
+    mem_limit: 256m
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ninho -d ninho_park"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+  park-service:
+    networks: [edge, park-private]
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+      args:
+        SERVICE: park-service
+    environment:
+      JDBC_URL: jdbc:postgresql://park-db:5432/ninho_park?connectTimeout=2&socketTimeout=5
+      DB_USER: ninho
+      DB_PASSWORD: ${PARK_DB_PASSWORD:-ninho-park-development}
+      NINHO_PUBLIC_KEY: /keys/public.pem
+      NINHO_ALLOWED_ORIGIN: ${NINHO_ORIGIN:-auto}
+      NINHO_SECURE_COOKIE: ${NINHO_SECURE_COOKIE:-false}
+    volumes:
+      - verification-keys:/keys:ro
+    depends_on:
+      keys:
+        condition: service_completed_successfully
+      park-db:
+        condition: service_healthy
+    restart: unless-stopped
+    mem_limit: 512m
+    stop_grace_period: 20s
+volumes:
+  identity-keys:
+  verification-keys:
+  account-data:
+  social-data:
+  fishing-data:
+  cooking-data:
+  park-data:
+networks:
+  edge:
+  account-private:
+    internal: true
+  social-private:
+    internal: true
+  fishing-private:
+    internal: true
+  cooking-private:
+    internal: true
+  park-private:
+    internal: true

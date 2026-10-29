@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Ninho · verificar conexão</title>
+    <link rel="stylesheet" href="/diagnostico.css" />
+    <script type="module" src="/diagnostico.js"></script>
+  </head>
+  <body>
+    <main>
+      <a href="/">← Voltar ao Ninho</a>
+      <h1>Vamos conferir os caminhos?</h1>
+      <p>
+        Esta página verifica a instalação aberta neste endereço. Cada atividade
+        responde por conta própria. Nenhuma conta é criada e nenhum dado pessoal
+        é lido.
+      </p>
+      <p id="installation"></p>
+      <button id="refresh">Verificar novamente</button>
+      <button id="copy" disabled>Copiar diagnóstico</button>
+      <p id="progress" role="status" aria-live="polite"></p>
+      <div id="results"></div>
+      <details>
+        <summary>Como conferir no Docker</summary>
+        <pre>
+docker compose ps -a
+docker compose --profile audit run --rm verify node docker-diagnostics.mjs</pre
+        >
+        <p>
+          “Up” indica um processo iniciado. A atividade só abre quando sua API e
+          seu banco conseguem responder. O relatório identifica também uma
+          versão antiga de API ou frontend.
+        </p>
+        <p>
+          Para testar só o parque:
+          <code>docker compose stop park-service</code>. Para reabrir:
+          <code>docker compose start park-service</code>. Cozinha:
+          <code>cooking-service</code>. Lago: <code>fishing-service</code>.
+        </p>
+      </details>
+    </main>
+  </body>
+</html>

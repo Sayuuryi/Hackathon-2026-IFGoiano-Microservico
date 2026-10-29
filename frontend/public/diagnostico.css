@@ -1,0 +1,72 @@
+body {
+  margin: 0;
+  background: #f7f4f8;
+  color: #51415d;
+  font:
+    16px/1.6 system-ui,
+    sans-serif;
+}
+main {
+  max-width: 820px;
+  margin: 48px auto;
+  padding: 24px;
+}
+h1 {
+  line-height: 1.2;
+}
+a {
+  color: #745488;
+}
+button {
+  background: #765888;
+  color: white;
+  border: 0;
+  border-radius: 12px;
+  padding: 12px 16px;
+  font: inherit;
+  margin: 0 8px 8px 0;
+  cursor: pointer;
+}
+button:disabled {
+  opacity: 0.55;
+  cursor: wait;
+}
+article {
+  background: white;
+  border: 1px solid #ded4e4;
+  border-radius: 18px;
+  padding: 16px 22px;
+  margin: 16px 0;
+}
+article[data-state="offline"] {
+  border-left: 5px solid #b58371;
+}
+article[data-state="online"] {
+  border-left: 5px solid #7c9b81;
+}
+article h2 {
+  font-size: 18px;
+  margin: 0;
+}
+article p {
+  margin: 8px 0;
+}
+small {
+  color: #776582;
+  overflow-wrap: anywhere;
+}
+pre {
+  background: #ede6f0;
+  padding: 16px;
+  overflow: auto;
+  border-radius: 12px;
+}
+details {
+  margin-top: 24px;
+}
+summary {
+  cursor: pointer;
+}
+#installation {
+  overflow-wrap: anywhere;
+}
